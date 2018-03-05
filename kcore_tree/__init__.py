@@ -5,3 +5,5 @@
 __author__ = """Anthony Vashevko"""
 __email__ = 'avashevko@gmail.com'
 __version__ = '0.1.0'
+
+from .kcore_tree import *
