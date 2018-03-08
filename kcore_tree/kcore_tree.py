@@ -6,10 +6,14 @@ import igraph
 from collections import defaultdict, OrderedDict, namedtuple
 
 def kcore_tree(g, *args, **kwargs):
-    # get coreness; make sorted set
-    # for core in coreness set,
-    #   get subgraph for relevant nodes
-    #   get components from subgraph (components(igraph.WEAK))
+    """
+    .. function:: kcore_tree(g, *args, **kwargs)
+
+    Derives the k-core hierarchy tree for a given graph.
+
+    :param igraph.Graph g: graph
+    :return: (blocks, hierarchy) tuple
+    """
 
     # preserve indices
     g1 = g.copy()
@@ -27,19 +31,47 @@ def kcore_tree(g, *args, **kwargs):
 
     return (blocks, hierarchy)
 
-def build_vertex_sets(g):
+def build_vertex_sets(g, verbose=0):
+    """
+    .. function:: build_vertex_sets(g)
+
+    Builds an ordered dictionary mapping k-core levels to lists of connected vertex ids at that level.
+    Graph vertices must have '_index' attribute.
+
+    :param igraph.Graph g: graph
+    :rtype: OrderedDict, keys=k, values=list of lists of vertex ids
+    """
     coreness = g.coreness()
     components = OrderedDict()
     # components = dict()
-    for k in sorted(coreness):
-        vset = filter_vertices(k, coreness)
+    for k in sorted(set(coreness)):
+        vset = __filter_vertices(k, coreness)
         components[k] = induced_components(g, vset)
     return components
         
-def filter_vertices(k, coreness):
+def __filter_vertices(k, coreness):
+    """
+    .. function filter_vertices(k, coreness)
+
+    Filters coreness mapping for vertex ids in k-core >= k.
+
+    :param k: minimum k-core
+    :param list coreness: vertex -> k-core mapping
+    :return: vertices in k-core
+    """
     return list(filter(lambda i: coreness[i] >= k, range(len(coreness))))
 
 def induced_components(g, vs):
+    """
+    .. function:: induced_components(g, vs)
+
+    Finds disjoint components formed by selected vertices.
+    Graph vertices must have '_index' attribute.
+
+    :param g: graph
+    :param vs: vertex id list
+    :return: list of components (vertex ids)
+    """
     components = list()
     gs = g.induced_subgraph(vs)
     for component in gs.components(igraph.WEAK):
@@ -47,7 +79,14 @@ def induced_components(g, vs):
         components.append([v['_index'] for v in component_vs])
     return components
 
-def component_lists_to_blocks(components_dict, vs=None):
+def component_lists_to_blocks(components_dict):
+    """
+    .. function component_lists_to_blocks(components_dict)
+
+    Converts components list to blocks.
+
+    :param components_dict: OrderedDict (list) of lists of components
+    """
     # set up block 'class'
     Block = namedtuple('Block', ['index', 'parent', 'vs', 'k'])
 
@@ -73,6 +112,15 @@ def component_lists_to_blocks(components_dict, vs=None):
     return (blocks)
 
 def blocks_to_hierarchy(blocks):
+    """
+    .. function:: blocks_to_hierarchy(blocks)
+
+    Builds hierarchy graph from block list.
+
+    :param blocks: list of blocks
+    :return: hierarchy tree
+    :rtype: igraph.Graph
+    """
     hier = igraph.Graph()
     idxs = [blk.index for blk in blocks]
     hier.add_vertices(idxs)
