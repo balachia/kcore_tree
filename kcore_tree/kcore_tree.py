@@ -5,6 +5,14 @@
 import igraph
 from collections import defaultdict, OrderedDict, namedtuple
 
+# VERBOSITY
+QUIET   = 0
+INFO    = 1
+DEBUG   = 2
+
+# set up block 'class'
+Block = namedtuple('Block', ['idx', 'parent', 'vertices', 'klevel', 'kconn'])
+
 def kcore_tree(g, *args, **kwargs):
     """
     .. function:: kcore_tree(g, *args, **kwargs)
@@ -21,17 +29,17 @@ def kcore_tree(g, *args, **kwargs):
         v['_index'] = v.index
 
     # build vertex sets
-    components_dict = build_vertex_sets(g1)
+    components_dict = build_vertex_sets(g1, *args, **kwargs)
 
     # build blocks
-    blocks = component_lists_to_blocks(components_dict)
+    blocks = component_lists_to_blocks(components_dict, *args, **kwargs)
 
     # build hierarchy
-    hierarchy = blocks_to_hierarchy(blocks)
+    hierarchy = blocks_to_hierarchy(blocks, *args, **kwargs)
 
     return (blocks, hierarchy)
 
-def build_vertex_sets(g, verbose=0):
+def build_vertex_sets(g, verbose=0, *args, **kwargs):
     """
     .. function:: build_vertex_sets(g)
 
@@ -45,11 +53,16 @@ def build_vertex_sets(g, verbose=0):
     components = OrderedDict()
     # components = dict()
     for k in sorted(set(coreness)):
+        if verbose >= INFO:
+            print('Finding k=%d' % k)
         vset = __filter_vertices(k, coreness)
-        components[k] = induced_components(g, vset)
+        if k > 0:
+            components[k] = induced_components(g, vset)
+        else:
+            components[k] = [vset]
     return components
         
-def __filter_vertices(k, coreness):
+def __filter_vertices(k, coreness, *args, **kwargs):
     """
     .. function filter_vertices(k, coreness)
 
@@ -61,7 +74,7 @@ def __filter_vertices(k, coreness):
     """
     return list(filter(lambda i: coreness[i] >= k, range(len(coreness))))
 
-def induced_components(g, vs):
+def induced_components(g, vs, *args, **kwargs):
     """
     .. function:: induced_components(g, vs)
 
@@ -79,7 +92,7 @@ def induced_components(g, vs):
         components.append([v['_index'] for v in component_vs])
     return components
 
-def component_lists_to_blocks(components_dict):
+def component_lists_to_blocks(components_dict, *args, **kwargs):
     """
     .. function component_lists_to_blocks(components_dict)
 
@@ -87,8 +100,6 @@ def component_lists_to_blocks(components_dict):
 
     :param components_dict: OrderedDict (list) of lists of components
     """
-    # set up block 'class'
-    Block = namedtuple('Block', ['index', 'parent', 'vs', 'k'])
 
     # track block index
     index = 0
@@ -105,13 +116,13 @@ def component_lists_to_blocks(components_dict):
                     parent = ancestries[v][-1]
                 ancestries[v].append(index)
 
-            blk = Block(index=index, parent=parent, vs=vs, k=k)
+            blk = Block(idx=index, parent=parent, vertices=vs, klevel=k, kconn=k)
             blocks.append(blk)
             index += 1
     
     return (blocks)
 
-def blocks_to_hierarchy(blocks):
+def blocks_to_hierarchy(blocks, *args, **kwargs):
     """
     .. function:: blocks_to_hierarchy(blocks)
 
@@ -127,7 +138,7 @@ def blocks_to_hierarchy(blocks):
 
     for blk in blocks:
         if blk.parent is not None:
-            hier.add_edge(blk.parent, blk.index)
+            hier.add_edge(blk.parent, blk.idx)
 
     return hier
 
