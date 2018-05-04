@@ -4,6 +4,7 @@
 
 import igraph
 from collections import defaultdict, OrderedDict, namedtuple
+from cblayout import Block
 
 # VERBOSITY
 QUIET   = 0
@@ -11,7 +12,7 @@ INFO    = 1
 DEBUG   = 2
 
 # set up block 'class'
-Block = namedtuple('Block', ['idx', 'parent', 'vertices', 'klevel', 'kconn'])
+# Block = namedtuple('Block', ['idx', 'parent', 'vertices', 'klevel', 'kconn'])
 
 def kcore_tree(g, *args, **kwargs):
     """
@@ -133,7 +134,7 @@ def blocks_to_hierarchy(blocks, *args, **kwargs):
     :rtype: igraph.Graph
     """
     hier = igraph.Graph()
-    idxs = [blk.index for blk in blocks]
+    idxs = [blk.idx for blk in blocks]
     hier.add_vertices(idxs)
 
     for blk in blocks:
